@@ -32,17 +32,17 @@ def save_configuration(tn):
         time.sleep(1)
         output = tn.recv(65535).decode('ascii')
         print(output)
-    
-    while True:
-        time.sleep(3)  # Adjust sleep duration as necessary
+
+    end_time = time.time() + 86  # Set the timeout for 86 seconds
+    while time.time() < end_time:
+        if "The data of" in output and "board is saved" in output:
+            print("Configuration has been saved successfully.")
+            return
+        time.sleep(5)  # Wait for 5 seconds before checking again
         output = tn.recv(65535).decode('ascii')
         print(output)
-        
-        # Check for the completion message
-        if "The data of" in output and "is saved completely" in output:
-            break
-    print("Configuration has been saved successfully.")
 
+    print("Save operation timed out.")
 
 def add_ont(tn):
     tn.send("display ont autofind all\n")
@@ -65,7 +65,7 @@ def add_ont(tn):
     tn.send("\n")
     time.sleep(3)
     output = tn.recv(65535).decode('ascii')
-    print("Output of the 'ont add {pon_value} sn-auth {id_value} omci ont-lineprofile-id 1 ont-srvprofile-id 1' command:")
+    print(f"Output of the 'ont add {pon_value} sn-auth {id_value} omci ont-lineprofile-id 1 ont-srvprofile-id 1' command:")
     print(output)
 
     onu_value = input("Enter the ONU ID field value: ")
@@ -101,7 +101,7 @@ def delete_ont(tn):
     tn.send("\n")
     time.sleep(3)
     output = tn.recv(65535).decode('ascii')
-    print("Output of the 'display service-port port 0/{slot_value}/{pon_value} ont {onu_value2}' command:")
+    print(f"Output of the 'display service-port port 0/{slot_value}/{pon_value} ont {onu_value2}' command:")
     print(output)
 
     id_undo_values = input("Enter the UNDO ID field values separated by commas (e.g., 1,2,3,4): ").split(',')
@@ -117,23 +117,24 @@ def delete_ont(tn):
     save_configuration(tn)
 
 def main():
-    host = "IP-Address"
+    host = "IP-address"
     port = "22"  # Default port for SSH is 22
     username = "root"
     password = "password"
 
+    tn = login_to_olt(host, port, username, password)
+    
     while True:
         action = input("Do you want to add or delete an ONT? (add/delete/exit): ").strip().lower()
         if action == "exit":
+            tn.close()
             break
-        tn = login_to_olt(host, port, username, password)
         if action == "add":
             add_ont(tn)
         elif action == "delete":
             delete_ont(tn)
         else:
             print("Invalid option. Please enter 'add' or 'delete'.")
-        tn.close()
 
 if __name__ == "__main__":
     main()
